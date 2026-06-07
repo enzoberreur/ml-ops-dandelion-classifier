@@ -33,8 +33,8 @@ diagram and the service table.
 ### 2:15-3:00 · CI/CD (GitHub Actions)
 - Open the repo's **Actions** tab. Open the latest green `CI/CD` run.
 - Walk the three jobs: **tests** (pytest: model, API, drift) → **build** (image
-  pushed to GHCR) → **deploy** (Minikube apply + rollout wait).
-- "Every push to main runs the tests, builds the image, and deploys to Kubernetes."
+  pushed to GHCR) → **deploy** (validates the k8s manifests against the schema).
+- "Every push to main runs the tests, builds and publishes the image, and validates the Kubernetes deployment manifests."
 
 ### 3:00-4:00 · Monitoring: metrics + drift
 - Open Grafana `http://localhost:3000` → **Dandelion Classifier** dashboard:
