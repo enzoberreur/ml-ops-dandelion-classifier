@@ -57,28 +57,7 @@ production monitoring with **data-drift detection**, and **automated
 
 ## Architecture
 
-```mermaid
-graph LR
-    subgraph "1. Data Ingestion"
-        A[GitHub Images] -->|download| B[Airflow DAG]
-        B -->|store| C[MinIO S3]
-    end
-    subgraph "2. Training"
-        C -->|load data| D[PyTorch ResNet18]
-        D -->|log metrics| E[MLflow :5500]
-        D -->|save model| C
-    end
-    subgraph "3. Serving"
-        C -->|load model| F[FastAPI :8000]
-        F -->|web UI| G[Streamlit :8501]
-    end
-    subgraph "4. Monitoring & Retraining"
-        F -->|metrics + drift| H[Prometheus :9090]
-        H -->|dashboards| I[Grafana :3000]
-        C -->|drift gate| J[Retrain pipeline]
-        J -->|new model| C
-    end
-```
+![Architecture](docs/architecture.png)
 
 | Service | Port | Role |
 |---|---|---|
