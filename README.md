@@ -12,6 +12,8 @@ production monitoring with **data-drift detection**, and **automated
 **Authors:** Enzo Berreur · Elea Nizam · Jean-Baptiste Brun · Elisa Leclerc
 
 > **For the jury:** [`docs/EVALUATION.md`](docs/EVALUATION.md) maps every grading criterion to where it is proven, and [`docs/DEFENSE.md`](docs/DEFENSE.md) is the oral Q&A pack.
+>
+> **One-command demo:** `bash demo.sh` boots the stack and walks the full loop (prediction API -> MLflow tracking -> drift metrics -> monitoring dashboards -> retraining DAG), pausing between stages for narration.
 
 > **Business framing (GreenGuard):** the perception brain and MLOps platform for
 > **autonomous, chemical-free weeding robots**. As herbicides are banned (e.g.
