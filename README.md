@@ -1,22 +1,27 @@
 # MLOps Dandelion Classifier - GreenGuard
 
 End-to-end, industrialised AI solution that classifies a plant photo as
-**dandelion** or **grass**, built as the deliverable for **Bloc 4 - Artificial
-Intelligence Solutions**. It is not just a model: it is a closed MLOps loop -
-data pipeline, experiment tracking, a serving API, CI/CD, production monitoring
-with **data-drift detection**, and **automated (drift-triggered) retraining**.
+**dandelion** (weed) or **grass** (crop/turf), built as the deliverable for
+**Bloc 4 - Artificial Intelligence Solutions**. It is not just a model: it is a
+closed MLOps loop - data pipeline, experiment tracking, a serving API, CI/CD,
+production monitoring with **data-drift detection**, and **automated
+(drift-triggered) retraining**.
 
 **Authors:** Enzo Berreur · Elea Nizam · Jean-Baptiste Brun · Elisa Leclerc
 
-> **Business framing (GreenGuard):** instead of spraying herbicide over a whole
-> lawn, a user photographs a patch and the app flags dandelions to spot-treat.
-> See the full [cahier des charges](docs/SPECIFICATION.md).
+> **Business framing (GreenGuard):** the perception brain and MLOps platform for
+> **autonomous, chemical-free weeding robots**. As herbicides are banned (e.g.
+> France's Loi Labbe) and manual weeding stays scarce, robots weed mechanically -
+> but must tell a weed (dandelion) from the crop/turf (grass) in real time to
+> remove only the weed. Across sites and seasons the data drifts, so the model is
+> monitored and retrained automatically. Full
+> [cahier des charges](docs/SPECIFICATION.md).
 
 ## Deliverables (this repo)
 
 | Deliverable | Location |
 |---|---|
-| AI solution presentation (17 slides) | [`deliverables/presentation.pptx`](deliverables/presentation.pptx) |
+| AI solution presentation (18 slides) | [`deliverables/presentation.pptx`](deliverables/presentation.pptx) |
 | Specification (cahier des charges) | [`deliverables/cahier_des_charges.docx`](deliverables/cahier_des_charges.docx) · [source](docs/SPECIFICATION.md) |
 | ML model code | [`models/`](models/), [`notebooks/`](notebooks/) |
 | Deployment & CI/CD code | [`app/api/`](app/api/), [`k8s/`](k8s/), [`monitoring/`](monitoring/), [`retrain/`](retrain/), [`.github/workflows/`](.github/workflows/) |
@@ -206,13 +211,13 @@ kubectl get svc -n mlops
 
 1. **tests** - install deps and run `pytest`.
 2. **build** - build the Docker image and push to GHCR.
-3. **deploy** - start Minikube, load the image, `kubectl apply`, verify rollout.
+3. **deploy** - validate the Kubernetes manifests (kubeconform, schema-checked, offline). The same manifests deploy to a local Minikube cluster (see above).
 
 | Step | Screenshot |
 |---|---|
 | Unit tests | ![tests](docs/screenshots/github_action_tests.png) |
 | Build & push | ![build](docs/screenshots/github_action_build.png) |
-| Minikube deploy | ![deploy](docs/screenshots/github_action_deploy.png) |
+| Manifest validation | ![deploy](docs/screenshots/github_action_deploy.png) |
 
 ## Screenshots
 
