@@ -1,367 +1,252 @@
-# MLOps Dandelion Classifier
+# MLOps Dandelion Classifier - GreenGuard
 
-Projet MLOps minimaliste pour classifier des images de pissenlits et d'herbe.
-Enzo BERREUR, Elea NIZAM, Jean-Baptiste BRUN, Elisa LECLERC
+End-to-end, industrialised AI solution that classifies a plant photo as
+**dandelion** or **grass**, built as the deliverable for **Bloc 4 - Artificial
+Intelligence Solutions**. It is not just a model: it is a closed MLOps loop -
+data pipeline, experiment tracking, a serving API, CI/CD, production monitoring
+with **data-drift detection**, and **automated (drift-triggered) retraining**.
+
+**Authors:** Enzo Berreur · Elea Nizam · Jean-Baptiste Brun · Elisa Leclerc
+
+> **Business framing (GreenGuard):** instead of spraying herbicide over a whole
+> lawn, a user photographs a patch and the app flags dandelions to spot-treat.
+> See the full [cahier des charges](docs/SPECIFICATION.md).
+
+## Deliverables (this repo)
+
+| Deliverable | Location |
+|---|---|
+| AI solution presentation (17 slides) | [`deliverables/presentation.pptx`](deliverables/presentation.pptx) |
+| Specification (cahier des charges) | [`deliverables/cahier_des_charges.docx`](deliverables/cahier_des_charges.docx) · [source](docs/SPECIFICATION.md) |
+| ML model code | [`models/`](models/), [`notebooks/`](notebooks/) |
+| Deployment & CI/CD code | [`app/api/`](app/api/), [`k8s/`](k8s/), [`monitoring/`](monitoring/), [`retrain/`](retrain/), [`.github/workflows/`](.github/workflows/) |
+| Demo video script (5 min) | [`docs/LOOM_SCRIPT.md`](docs/LOOM_SCRIPT.md) |
+| Model card | [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) |
+| Structure ↔ brief mapping | [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) |
 
 ## Stack
 
-- **Orchestration** : Apache Airflow 2
-- **Modélisation** : PyTorch + torchvision
-- **MLOps** : MLflow (tracking), MinIO (artifacts & datasets)
-- **Serving** : FastAPI + Streamlit
-- **Conteneurisation** : Docker, Docker Compose, Kubernetes (Minikube)
-- **CI/CD** : GitHub Actions
-- **Monitoring** : Prometheus + Grafana (optionnel)
+- **Orchestration:** Apache Airflow 2
+- **Modelling:** PyTorch + torchvision - **ResNet18 transfer learning** (default) with a custom-CNN baseline
+- **MLOps:** MLflow (tracking), MinIO (S3-compatible artifacts & datasets)
+- **Serving:** FastAPI + Streamlit
+- **Packaging:** Docker, Docker Compose, Kubernetes (Minikube)
+- **CI/CD:** GitHub Actions (tests → build → deploy)
+- **Monitoring:** Prometheus + Grafana (operational) + **Evidently / PSI** (data drift)
 
-## Choix techniques & objectifs
+## Why these choices
 
-- **Airflow + MinIO** : pipeline déclaratif pour automatiser le téléchargement des images, la préparation et l'entraînement. MinIO offre un stockage S3 compatible reproductible en local et en cluster.
-- **PyTorch** : modèle léger (ResNet18) finement ajusté pour un dataset restreint (200 images par classe) avec des transformations simples (resize + augmentation légère) afin de limiter l'overfitting.
-- **MLflow Tracking** : centralise les métriques (loss, accuracy, f1) et l'enregistrement du modèle. Chaque run conserve le code source et permet la comparaison de plusieurs entraînements.
-- **FastAPI** : service de prédiction synchrone qui télécharge le dernier checkpoint depuis MinIO au démarrage, expose `/predict` et `/health`, et publie des métriques Prometheus.
-- **Streamlit** : interface pour tester rapidement les prédictions et monitorer la disponibilité de l'API (mode local ou API distante).
-- **Prometheus + Grafana** : supervision des appels API (`/predict`) et de la santé du scheduler Airflow via `statsd-exporter`. Deux dashboards sont provisionnés automatiquement.
-- **CI/CD GitHub Actions** : pipeline unique (tests → build → déploiement Minikube) pour valider la stack bout-en-bout. Les images sont publiées sur GHCR et peuvent être retagées pour Docker Hub.
-
-### Résultats observés (référence)
-
-Les métriques dépendent fortement des tirages aléatoires (split train/val). Avec la configuration par défaut (`IMAGE_SIZE=224`, `EPOCHS=5`), un run typique donne :
-
-- **Accuracy validation** : 0.90 ± 0.03
-- **F1-score validation** : 0.89 ± 0.04
-- **Temps d'entraînement** : ~4 minutes sur CPU (LocalExecutor Airflow)
-
-### Captures d'écran principales
-
-| Vue | Description |
-| --- | ----------- |
-| ![Run MLflow](docs/screenshots/mlflow.png) | Vue d'ensemble de l'expérience `dandelion-classifier`, incluant les paramètres et le succès du run. |
-| ![Courbes MLflow](docs/screenshots/mlflow_metrics.png) | Historique des métriques (loss & accuracy) capturées pendant l'entraînement PyTorch. |
-| ![Stockage MinIO](docs/screenshots/minio.png) | Buckets `dandelion-models` et `mlflow-artifacts` contenant les jeux de données et le checkpoint `models/latest/best_model.pt`. |
-| ![API Streamlit](docs/screenshots/streamlit.png) | Interface utilisateur pour tester les prédictions depuis un navigateur. |
-| ![Dashboard API Grafana](docs/screenshots/grafana_calssifier.png) | Monitoring temps réel du trafic `/predict` (latence p90 et nombre d'appels). |
-| ![Dashboard Airflow Grafana](docs/screenshots/airflow_data_pipeline.png) | Supervision du scheduler Airflow et du throughput des tâches via StatsD exporter. |
-
-> Captures réalisées sur l’environnement Docker Compose (identique à l’environnement Minikube côté services).
-
-## Images Docker
-
-- **GHCR (par défaut CI/CD)** : `https://ghcr.io/enzoberreur/mlops/mlops-app:<commit-sha>`
-- **Publication Docker Hub (option)** :
-  ```bash
-  export DOCKERHUB_USER=enzoberreur
-  docker pull ghcr.io/enzoberreur/mlops/mlops-app:<commit-sha>
-  docker tag ghcr.io/enzoberreur/mlops/mlops-app:<commit-sha> docker.io/$DOCKERHUB_USER/mlops-app:<commit-sha>
-  docker push docker.io/$DOCKERHUB_USER/mlops-app:<commit-sha>
-  ```
-  Créez le repository Docker Hub `docker.io/enzoberreur/mlops-app` puis communiquez les URLs des tags pertinents (ex. `https://hub.docker.com/r/enzoberreur/mlops-app/tags?name=<commit-sha>`).
-
-## Artéfacts de production
-
-- **Buckets MinIO** :
-  - Données brutes : `dandelion-data/raw/`
-  - Données prétraitées : `dandelion-data/processed/`
-  - Modèle : `dandelion-models/models/latest/best_model.pt`
-  - Artifacts MLflow : `mlflow-artifacts/<experiment-id>/<run-id>/artifacts/`
-- **MLflow Experiment** : `dandelion-classifier`
-  - Les runs sont taggés avec l'ID Airflow (`dag_id`, `execution_date`) pour tracer leur provenance.
-  - Reproductibilité garantie par la sauvegarde du modèle `mlflow.pytorch`.
-- **Airflow Vars/Connections** : gérées via `.env` et injectées dans les containers (`MINIO_*`, `MLFLOW_TRACKING_URI`, etc.). Export possible via `airflow variables export`.
+- **ResNet18 transfer learning** - with only ~400 images, a pretrained backbone
+  generalises far better than training from scratch. A lightweight custom CNN is
+  retained as an offline baseline (`MODEL_ARCH=cnn`).
+- **Airflow + MinIO** - declarative, observable pipelines and a reproducible,
+  cloud-portable S3 store for data and models.
+- **MLflow** - every run logs params, metrics (accuracy, **F1**, precision,
+  recall), the confusion matrix and the serialized model.
+- **FastAPI** - fast, stateless serving; loads the latest checkpoint from MinIO
+  and exposes Prometheus metrics.
+- **Evidently + PSI** - human-readable drift reports and machine-readable drift
+  metrics that drive **drift-triggered retraining**.
 
 ## Architecture
 
-### Pipeline MLOps Complet
-
 ```mermaid
 graph LR
-    subgraph "1️⃣ DATA INGESTION"
-        A[GitHub Images] -->|télécharge| B[Airflow DAG]
-        B -->|stocke| C[MinIO S3]
+    subgraph "1. Data Ingestion"
+        A[GitHub Images] -->|download| B[Airflow DAG]
+        B -->|store| C[MinIO S3]
     end
-    
-    subgraph "2️⃣ TRAINING"
-        C -->|charge données| D[PyTorch ResNet18]
-        D -->|log métriques| E[MLflow :5500]
-        D -->|sauvegarde modèle| C
+    subgraph "2. Training"
+        C -->|load data| D[PyTorch ResNet18]
+        D -->|log metrics| E[MLflow :5500]
+        D -->|save model| C
     end
-    
-    subgraph "3️⃣ SERVING"
-        C -->|charge modèle| F[FastAPI :8000]
-        F -->|UI web| G[Streamlit :8501]
+    subgraph "3. Serving"
+        C -->|load model| F[FastAPI :8000]
+        F -->|web UI| G[Streamlit :8501]
     end
-    
-    subgraph "4️⃣ MONITORING"
-        F -->|métriques| H[Prometheus :9090]
+    subgraph "4. Monitoring & Retraining"
+        F -->|metrics + drift| H[Prometheus :9090]
         H -->|dashboards| I[Grafana :3000]
+        C -->|drift gate| J[Retrain pipeline]
+        J -->|new model| C
     end
-
-    style A fill:#e3f2fd
-    style C fill:#e1f5ff
-    style D fill:#fff3e0
-    style E fill:#fff3e0
-    style F fill:#f3e5f5
-    style G fill:#f3e5f5
-    style H fill:#e8f5e9
-    style I fill:#e8f5e9
 ```
 
-**Explication du flux :**
+| Service | Port | Role |
+|---|---|---|
+| Airflow | 8080 | Orchestration (data + retraining) |
+| MinIO | 9000/9001 | S3 storage (data + models + artifacts) |
+| MLflow | 5500 | Experiment tracking |
+| FastAPI | 8000 | Prediction API (`/predict`, `/health`, `/version`, `/metrics`) |
+| Streamlit | 8501 | Web UI |
+| Prometheus | 9090 | Metrics collection |
+| Grafana | 3000 | Dashboards (classifier, Airflow, **drift**) |
 
-1. **Data Ingestion** : Airflow télécharge automatiquement 400 images (200 pissenlits + 200 herbe) depuis GitHub et les stocke dans MinIO
-2. **Training** : PyTorch charge les données depuis MinIO, entraîne un modèle ResNet18, et log toutes les métriques dans MLflow. Le modèle entraîné est sauvegardé dans MinIO
-3. **Serving** : L'API FastAPI charge le meilleur modèle depuis MinIO au démarrage. Streamlit fournit une interface web pour uploader des images et obtenir des prédictions
-4. **Monitoring** : FastAPI expose des métriques Prometheus (nombre de prédictions, latence). Grafana visualise ces métriques en temps réel via des dashboards
+See [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) for the full tree and
+how it maps to the brief's required folders.
 
-### Composants Principaux
-
-| Service | Port | Rôle |
-|---------|------|------|
-| **Airflow** | 8080 | Orchestration des pipelines (data + training) |
-| **MinIO** | 9000/9001 | Stockage S3 (données + modèles + artifacts) |
-| **MLflow** | 5500 | Tracking des expériences ML |
-| **FastAPI** | 8000 | API de prédiction |
-| **Streamlit** | 8501 | Interface utilisateur web |
-| **Prometheus** | 9090 | Collecte des métriques |
-| **Grafana** | 3000 | Visualisation des dashboards |
-
-### Flux de Données Détaillé
-
-```mermaid
-sequenceDiagram
-    participant U as Utilisateur
-    participant S as Streamlit
-    participant A as FastAPI
-    participant M as MinIO
-    participant ML as MLflow
-    participant Air as Airflow
-    
-    Note over Air,M: Pipeline d'entraînement
-    Air->>M: 1. Upload données brutes
-    Air->>Air: 2. Prétraitement images
-    Air->>M: 3. Upload données traitées
-    Air->>ML: 4. Training PyTorch
-    ML->>M: 5. Sauvegarde modèle
-    
-    Note over U,A: Inférence
-    U->>S: Upload image
-    S->>A: POST /predict
-    A->>M: Charge modèle (si nécessaire)
-    A->>A: Prédiction
-    A->>S: Résultat + confiance
-    S->>U: Affiche résultat
-```
-
-**Déroulement chronologique détaillé :**
-
-**Phase 1 - Pipeline d'entraînement (exécuté par Airflow) :**
-1. Airflow démarre le DAG `dandelion_data_pipeline` (programmé hebdomadairement ou déclenché manuellement)
-2. Téléchargement de 200 images de pissenlits et 200 images d'herbe depuis GitHub
-3. Upload des images brutes dans MinIO (bucket `dandelion-data/raw/`)
-4. Prétraitement : redimensionnement à 128×128 pixels et normalisation
-5. Upload des images traitées dans MinIO (bucket `dandelion-data/processed/`)
-6. Lancement de l'enécution PyTorch : entraînement du modèle ResNet18 sur 3-5 époques
-7. MLflow enregistre automatiquement : accuracy, loss, F1-score, hyperparamètres
-8. Sauvegarde du meilleur modèle dans MinIO (bucket `dandelion-models/models/latest/best_model.pt`)
-
-**Phase 2 - Inférence en temps réel (utilisateur final) :**
-1. L'utilisateur ouvre l'interface Streamlit sur son navigateur (http://localhost:8501)
-2. L'utilisateur uploade une photo de plante via l'interface web
-3. Streamlit envoie l'image à l'API FastAPI via une requête POST sur `/predict`
-4. FastAPI charge le modèle depuis MinIO (uniquement au premier démarrage, puis gardé en mémoire)
-5. Le modèle effectue la prédiction : classe (dandelion/grass) + score de confiance
-6. FastAPI retourne le résultat JSON avec la prédiction et les probabilités pour chaque classe
-7. Streamlit affiche visuellement le résultat à l'utilisateur avec la confiance
-8. Parallèlement, Prometheus collecte les métriques (temps de réponse, nombre de prédictions)
-9. Grafana met à jour les dashboards en temps réel pour le monitoring
-
-## Prérequis
-
-- Docker & Docker Compose
-- Python 3.10+ (pour exécuter les scripts en local)
-- Minikube (pour l'environnement "prod")
-
-## Démarrage rapide local (Docker Compose)
-
-### ⚡ Lancement en 3 étapes
+## Quick start (Docker Compose)
 
 ```bash
-# 1. Construire les images Docker
+# 1. Build the app image
 docker compose build
-
-# 2. Initialiser Airflow (une seule fois)
+# 2. Initialise Airflow (once)
 docker compose up airflow-init
-
-# 3. Lancer tous les services
+# 3. Start everything
 docker compose up -d
 ```
 
-### 📋 Vérification
+Wait ~30-60 s, then open:
 
-Attendez 30-60 secondes que tous les services démarrent :
+- Airflow - http://localhost:8080 (`admin` / `admin`)
+- FastAPI - http://localhost:8000/docs
+- Streamlit - http://localhost:8501
+- MLflow - http://localhost:5500
+- MinIO console - http://localhost:9001 (`minioadmin` / `minioadmin`)
+- Prometheus - http://localhost:9090
+- Grafana - http://localhost:3000 (`admin` / `admin`)
+
+### 10-minute demo
+
+1. In Airflow, trigger `dandelion_data_pipeline` (download → preprocess → train → push model).
+2. While it runs, show **MinIO** (buckets), **MLflow** (live metrics), **Grafana** (dashboards).
+3. Once trained, test in **Streamlit** or via `POST /predict` in the FastAPI docs.
 
 ```bash
-# Voir l'état des conteneurs
-docker compose ps
-
-# Vérifier les logs
-docker compose logs -f airflow-scheduler
-docker compose logs -f api
-```
-
-### 🌐 URLs d'accès
-
-Services exposés :
-- Airflow UI : http://localhost:8080 (login/password `admin/admin`)
-- FastAPI : http://localhost:8000/docs
-- Streamlit : http://localhost:8501
-- MLflow : http://localhost:5500
-- MinIO : http://localhost:9001 (console - `minioadmin/minioadmin`)
-- Prometheus : http://localhost:9090
-- Grafana : http://localhost:3000 (`admin/admin`)
-
-### 🎯 Démo Rapide (10 minutes)
-
-**1. Lancer le pipeline d'entraînement** (7 min d'exécution)
-- Ouvrir Airflow UI : http://localhost:8080 (`admin/admin`)
-- Cliquer sur le DAG `dandelion_data_pipeline`
-- Cliquer sur le bouton ▶️ "Trigger DAG"
-- Le pipeline va : télécharger 400 images → prétraiter → entraîner ResNet18 → sauvegarder dans MinIO
-
-**2. Pendant l'entraînement, montrer :**
-- **MinIO** (http://localhost:9001) : Voir les buckets et les données uploadées
-- **MLflow** (http://localhost:5500) : Voir les métriques en temps réel
-- **Grafana** (http://localhost:3000) : Dashboards de monitoring
-
-**3. Tester les prédictions** (une fois le training terminé)
-- **Streamlit** (http://localhost:8501) : Uploader une image et voir la prédiction
-- **FastAPI** (http://localhost:8000/docs) : Tester l'endpoint `/predict`
-
-### 🐛 Dépannage
-
-**Airflow ne démarre pas :**
-```bash
-docker compose down -v  # ⚠️ Efface tout
-docker compose up airflow-init
-docker compose up -d
-```
-
-**L'API dit "Model not available" :**
-C'est normal au démarrage ! Le modèle n'existe pas encore. Lancez d'abord le pipeline Airflow.
-
-**Télécharger des images de test :**
-```bash
-# Image de pissenlit
+# Test images
 curl -o test_dandelion.jpg "https://raw.githubusercontent.com/btphan95/greenr-airflow/refs/heads/master/data/dandelion/00000001.jpg"
-
-# Image d'herbe
-curl -o test_grass.jpg "https://raw.githubusercontent.com/btphan95/greenr-airflow/refs/heads/master/data/grass/00000001.jpg"
+curl -o test_grass.jpg     "https://raw.githubusercontent.com/btphan95/greenr-airflow/refs/heads/master/data/grass/00000001.jpg"
 ```
 
-**Arrêter les services :**
+> The API answers `503` on `/predict` until a model exists - run the pipeline first.
+
+## ML model
+
+- **Architecture:** `MODEL_ARCH=resnet18` (default) or `cnn`. The chosen arch is
+  saved inside the checkpoint, so serving rebuilds the exact network.
+- **Metrics:** accuracy, macro **F1**, precision, recall and the confusion matrix
+  are logged to MLflow each run; the release gate is **macro-F1 ≥ 0.85**.
+- **Reference run:** ~0.90 accuracy / ~0.89 macro-F1, ~4 min on CPU.
+- **Notebooks:** [`notebooks/01_eda.ipynb`](notebooks/01_eda.ipynb) (EDA) and
+  [`notebooks/02_model_selection.ipynb`](notebooks/02_model_selection.ipynb)
+  (architecture rationale + evaluation).
+
 ```bash
-docker compose stop  # Garde les données
-docker compose down -v  # ⚠️ Supprime tout
+# Train locally (after data is available), choosing the architecture
+python models/train.py --data-dir data/processed --arch resnet18 --epochs 5
 ```
 
-Sur Streamlit, vous pouvez choisir entre deux modes d'inférence :
-- **API distante** : envoie l'image à FastAPI (`/predict`).
-- **Local (MinIO)** : télécharge un checkpoint `.pt` depuis MinIO et exécute l'inférence directement dans l'application.
+## Serving API
 
-> Astuce : exécuter une première fois `python scripts/bootstrap_minio.py` pour créer les buckets sur MinIO (si vous n'utilisez pas Docker Compose).
+| Endpoint | Purpose |
+|---|---|
+| `POST /predict` | Class + per-class probabilities for an uploaded image |
+| `GET /health` | Readiness + class list |
+| `GET /version` | Served model metadata (architecture, source, image size) |
+| `GET /metrics` | Prometheus metrics (incl. drift gauges) |
 
-### Pipelines Airflow
+## Production monitoring
 
-- `dandelion_data_pipeline` :
-  1. Télécharge les images des deux classes depuis GitHub.
-  2. Stocke les données brutes et pré-traitées dans MinIO.
-  3. Lance l'entraînement du modèle, loggue dans MLflow et pousse le modèle sur MinIO.
-- `dandelion_retrain_pipeline` : synchronise les dernières données prétraitées depuis MinIO puis relance l'entraînement.
-
-### Monitoring
-
-Prometheus scrappe l'endpoint `/metrics` exposé par FastAPI. Le dashboard Grafana (importé automatiquement) montre :
-- compteur total des prédictions,
-- latence p90 de l'endpoint `/predict`.
-
-L'exporter StatsD collecte également les métriques Airflow (scheduler heartbeat, DagRun success/fail) accessibles dans le dashboard "Airflow Overview".
-
-## Développement local hors Docker
+- **Operational:** `predictions_total`, `prediction_latency_seconds` (p90) on the
+  *Dandelion Classifier* Grafana dashboard; Airflow metrics via StatsD.
+- **Data drift:** per-feature **PSI** over interpretable image statistics
+  (brightness, contrast, colour, saturation, edges). Exposed as
+  `dandelion_dataset_drift`, `dandelion_drift_share`, `dandelion_feature_psi`
+  gauges on the API `/metrics` endpoint (no extra service) and visualised on the
+  *Dandelion Data Drift* dashboard. A human-readable report is produced by
+  **Evidently** (with a dependency-free fallback). See
+  [`monitoring/drift/`](monitoring/drift/).
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python scripts/bootstrap_minio.py
-python models/train.py --data-dir data/processed  # supposant des données déjà téléchargées
-uvicorn app.api.main:app --reload
-streamlit run app/webapp/streamlit_app.py
+# Reproducible drift sample (no pipeline needed)
+python -m monitoring.drift.generate_sample_report      # -> monitoring/drift/reports/
+# Real drift check between two image directories
+python -m monitoring.drift.run_drift_check --reference data/processed --current data/incoming
+# Optional: full Evidently reports
+pip install -r requirements-monitoring.txt
+```
+
+## Automated retraining
+
+Two triggers, **one drift definition** (shared with monitoring):
+
+- **Scheduled** - monthly `dandelion_retrain_pipeline` DAG
+  (`sync → check_drift → train → refresh_baseline`).
+- **Drift-triggered** - retrain only when incoming data drifted vs the reference
+  set. See [`retrain/`](retrain/).
+
+```bash
+# Drift-gated (retrains only if drifted)
+python -m retrain.retrain --data-dir data/processed --reference-dir data/baseline
+# Forced refresh
+python -m retrain.retrain --data-dir data/processed --force
 ```
 
 ## Tests
 
 ```bash
-pytest
+pip install -r requirements-dev.txt
+pytest            # model factory, API endpoints, drift engine, dataloaders
 ```
 
-## Déploiement Minikube
+## Kubernetes (Minikube)
 
-1. Démarrer minikube :
-   ```bash
-   minikube start --driver=docker
-   ```
-2. Construire et charger l'image :
-   ```bash
-   docker build -t mlops-app:latest .
-   minikube image load mlops-app:latest
-   ```
-3. Déployer :
-   ```bash
-   kubectl apply -f k8s/minikube-manifest.yaml
-   ```
-4. Consulter les services :
-   ```bash
-   kubectl get svc -n mlops
-   minikube service --namespace mlops api
-   minikube service --namespace mlops streamlit
-   ```
+```bash
+minikube start --driver=docker
+docker build -t mlops-app:latest .
+minikube image load mlops-app:latest
+kubectl apply -f k8s/minikube-manifest.yaml
+kubectl get svc -n mlops
+```
 
-## CI/CD GitHub Actions
+## CI/CD (GitHub Actions)
 
-- `tests` : installe les dépendances et exécute `pytest`.
-- `build` : construit l'image Docker et la pousse sur GHCR (`ghcr.io/<repo>/mlops-app`).
-- `deploy` : démarre Minikube dans le runner, charge l'image publiée et applique les manifests Kubernetes.
+`.github/workflows/ci_cd.yml` runs on every push to `main`:
 
-| Étape | Capture |
-| --- | --- |
-| Tests unitaires | ![GitHub Actions - tests](docs/screenshots/github_action_tests.png) |
-| Build & push | ![GitHub Actions - build](docs/screenshots/github_action_build.png) |
-| Déploiement Minikube | ![GitHub Actions - deploy](docs/screenshots/github_action_deploy.png) |
+1. **tests** - install deps and run `pytest`.
+2. **build** - build the Docker image and push to GHCR.
+3. **deploy** - start Minikube, load the image, `kubectl apply`, verify rollout.
 
-Créer un environnement GitHub Actions sécurisé :
-- Le dépôt doit être public pour que GHCR soit accessible sans credentials supplémentaires (sinon, fournir un `imagePullSecret`).
-- Ajuster les URLs du manifeste K8s si vous utilisez un autre endpoint MinIO/MLflow.
+| Step | Screenshot |
+|---|---|
+| Unit tests | ![tests](docs/screenshots/github_action_tests.png) |
+| Build & push | ![build](docs/screenshots/github_action_build.png) |
+| Minikube deploy | ![deploy](docs/screenshots/github_action_deploy.png) |
 
-## Structure du dépôt
+## Screenshots
+
+| View | Description |
+|---|---|
+| ![MLflow](docs/screenshots/mlflow.png) | `dandelion-classifier` experiment - params and successful run. |
+| ![MLflow metrics](docs/screenshots/mlflow_metrics.png) | Logged metric history (loss & accuracy). |
+| ![MinIO](docs/screenshots/minio.png) | Buckets with datasets and the `best_model.pt` checkpoint. |
+| ![Streamlit](docs/screenshots/streamlit.png) | Web UI to test predictions. |
+| ![Grafana API](docs/screenshots/grafana_calssifier.png) | Live `/predict` traffic (p90 latency, call count). |
+| ![Grafana Airflow](docs/screenshots/airflow_data_pipeline.png) | Airflow scheduler/throughput via StatsD. |
+
+## Repository structure
 
 ```
-mlops-project/
-├── airflow/dags/...
-├── app/api/main.py          # API FastAPI
-├── app/webapp/streamlit_app.py
-├── models/                  # Modèle PyTorch & utilitaires
-├── monitoring/              # Prometheus & Grafana config
-├── k8s/minikube-manifest.yaml
-├── scripts/bootstrap_minio.py
-├── tests/test_utils.py
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
+MLops/
+├── notebooks/         # EDA + model selection
+├── models/            # model.py (resnet18|cnn), train.py, utils.py
+├── app/api/           # FastAPI serving
+├── app/webapp/        # Streamlit UI
+├── airflow/dags/      # data + (drift-aware) retrain pipelines
+├── retrain/           # drift-gated automated retraining
+├── monitoring/        # Prometheus, Grafana dashboards, drift engine + reports
+├── k8s/               # Minikube manifests
+├── tests/             # unit + API + drift tests
+├── docs/              # specification, model card, structure, Loom script
+├── deliverables/      # presentation.pptx, cahier_des_charges.docx
+├── Dockerfile · docker-compose.yml
 └── .github/workflows/ci_cd.yml
 ```
 
 ## Notes
 
-- Dataset : 200 images par classe, récupérées directement depuis GitHub.
-- Les DAGs utilisent les variables Airflow (`data_base_path`, `image_size`, etc.) pour personnaliser les chemins.
-- L'API télécharge automatiquement la dernière version du modèle depuis MinIO au démarrage.
-- MLflow enregistre le modèle (`mlflow.pytorch.log_model`) et le meilleur checkpoint dans MinIO.
+- Dataset: ~200 images/class fetched from a public GitHub dataset by the Airflow pipeline.
+- The API auto-downloads the latest model from MinIO at startup; checkpoints store
+  the architecture and class names for exact reconstruction.
+- MLflow logs the model (`mlflow.pytorch.log_model`) and the best checkpoint.

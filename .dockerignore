@@ -1,0 +1,47 @@
+# Version control
+.git/
+.gitignore
+
+# Python caches (the .pytest_cache access-denied was breaking the build context)
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments (large - e.g. .venv-test ships torch)
+venv/
+.venv/
+.venv-test/
+
+# ML / runtime artifacts
+mlruns/
+artifacts/
+logs/
+*.log
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Secrets / local env
+.env
+.env.*
+
+# CI, docs, notebooks, deliverables (not needed in the image; bind-mounted at runtime where required)
+.github/
+docs/
+notebooks/
+deliverables/
+
+# Local demo-only files (provided via bind mount at runtime; not baked into the image)
+sitecustomize.py
+build_plain.log
+data/

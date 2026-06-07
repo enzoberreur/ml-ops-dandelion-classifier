@@ -1,0 +1,16 @@
+# HELP dandelion_dataset_drift 1 if dataset drift detected, else 0
+# TYPE dandelion_dataset_drift gauge
+dandelion_dataset_drift 1
+# HELP dandelion_drift_share Share of features with significant drift
+# TYPE dandelion_drift_share gauge
+dandelion_drift_share 0.6250
+# HELP dandelion_feature_psi Per-feature Population Stability Index
+# TYPE dandelion_feature_psi gauge
+dandelion_feature_psi{feature="brightness"} 4.7450
+dandelion_feature_psi{feature="contrast"} 2.2680
+dandelion_feature_psi{feature="red_mean"} 1.5421
+dandelion_feature_psi{feature="green_mean"} 0.0155
+dandelion_feature_psi{feature="blue_mean"} 0.5851
+dandelion_feature_psi{feature="saturation_mean"} 4.0179
+dandelion_feature_psi{feature="edge_density"} 0.0385
+dandelion_feature_psi{feature="aspect_ratio"} 0.0370

@@ -10,7 +10,18 @@ __pycache__/
 logs/
 venv/
 .venv/
+.venv-test/
 mlruns/
+artifacts/
 __snapshot__/
 .idea/
 .vscode/
+
+# Local demo-only files (corporate-proxy workaround, seeded data, scratch logs)
+sitecustomize.py
+build_plain.log
+data/
+scripts/seed_demo.py
+test_dandelion.jpg
+test_grass.jpg
+~$*

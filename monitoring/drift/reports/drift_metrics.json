@@ -1,0 +1,26 @@
+{
+  "dataset_drift": true,
+  "share_drifted": 0.625,
+  "n_features": 8,
+  "n_drifted": 5,
+  "drifted_features": [
+    "brightness",
+    "contrast",
+    "red_mean",
+    "blue_mean",
+    "saturation_mean"
+  ],
+  "psi_threshold": 0.2,
+  "dataset_drift_share": 0.5,
+  "feature_psi": {
+    "brightness": 4.745,
+    "contrast": 2.268,
+    "red_mean": 1.5421,
+    "green_mean": 0.0155,
+    "blue_mean": 0.5851,
+    "saturation_mean": 4.0179,
+    "edge_density": 0.0385,
+    "aspect_ratio": 0.037
+  },
+  "report_engine": "fallback"
+}

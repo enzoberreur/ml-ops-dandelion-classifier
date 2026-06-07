@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Drift report - dandelion classifier</title>
+<style>
+ body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; color: #222; }
+ h1 { font-size: 1.4rem; }
+ .banner { background: #c0392b; color: #fff; padding: 12px 16px; border-radius: 8px; font-weight: 600; }
+ .meta { color: #555; margin: 12px 0; }
+ table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+ th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #eee; }
+ th { background: #f5f6f8; }
+ tr.drift td { background: #fdecea; }
+ .note { color: #777; font-size: 0.85rem; margin-top: 1.5rem; }
+</style></head><body>
+<h1>Data drift report - dandelion classifier</h1>
+<div class="banner">DATASET DRIFT DETECTED</div>
+<p class="meta">8 features monitored · 5 drifted ·
+ share drifted 62% (threshold 50%) ·
+ PSI threshold 0.2</p>
+<table><thead><tr><th>Feature</th><th>PSI</th><th>Status</th></tr></thead>
+<tbody><tr class='drift'><td>brightness</td><td>4.7450</td><td>DRIFT</td></tr><tr class='drift'><td>saturation_mean</td><td>4.0179</td><td>DRIFT</td></tr><tr class='drift'><td>contrast</td><td>2.2680</td><td>DRIFT</td></tr><tr class='drift'><td>red_mean</td><td>1.5421</td><td>DRIFT</td></tr><tr class='drift'><td>blue_mean</td><td>0.5851</td><td>DRIFT</td></tr><tr class='ok'><td>edge_density</td><td>0.0385</td><td>stable</td></tr><tr class='ok'><td>aspect_ratio</td><td>0.0370</td><td>stable</td></tr><tr class='ok'><td>green_mean</td><td>0.0155</td><td>stable</td></tr></tbody></table>
+<p class="note">Fallback report (Evidently not installed in this environment).
+ PSI &lt; 0.1 = no shift · 0.1-0.2 = moderate · &ge; 0.2 = significant.</p>
+</body></html>

@@ -14,7 +14,7 @@ import torch
 from minio.error import S3Error
 from PIL import Image
 
-from models.model import DandelionClassifier
+from models.model import build_model
 from models.utils import CLASS_NAMES, get_inference_transform, get_minio_client
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
@@ -49,7 +49,7 @@ def list_available_models() -> List[str]:
 
 
 @st.cache_resource(show_spinner=False)
-def load_model_from_minio(object_name: str) -> DandelionClassifier:
+def load_model_from_minio(object_name: str) -> torch.nn.Module:
     """Télécharge un checkpoint depuis MinIO et le charge en mémoire."""
     client = get_minio_client()
     with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as tmp_file:
@@ -62,7 +62,8 @@ def load_model_from_minio(object_name: str) -> DandelionClassifier:
             local_path.unlink(missing_ok=True)
 
     class_names = checkpoint.get("class_names", CLASS_NAMES)
-    model = DandelionClassifier(num_classes=len(class_names))
+    arch = checkpoint.get("arch", "cnn")
+    model = build_model(arch=arch, num_classes=len(class_names), pretrained=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.class_names = class_names  # type: ignore[attr-defined]
     model.eval()

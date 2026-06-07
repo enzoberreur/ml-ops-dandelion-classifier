@@ -1,0 +1,5 @@
+# Optional monitoring extras: enables rich Evidently drift reports.
+# The drift engine works without this (self-rendered HTML fallback); installing
+# it upgrades monitoring/drift reports to full Evidently DataDriftPreset reports.
+#   pip install -r requirements-monitoring.txt
+evidently==0.4.40
