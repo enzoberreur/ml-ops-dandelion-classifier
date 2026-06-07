@@ -11,6 +11,8 @@ production monitoring with **data-drift detection**, and **automated
 
 **Authors:** Enzo Berreur · Elea Nizam · Jean-Baptiste Brun · Elisa Leclerc
 
+> **For the jury:** [`docs/EVALUATION.md`](docs/EVALUATION.md) maps every grading criterion to where it is proven, and [`docs/DEFENSE.md`](docs/DEFENSE.md) is the oral Q&A pack.
+
 > **Business framing (GreenGuard):** the perception brain and MLOps platform for
 > **autonomous, chemical-free weeding robots**. As herbicides are banned (e.g.
 > France's Loi Labbe) and manual weeding stays scarce, robots weed mechanically -
