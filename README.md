@@ -1,6 +1,6 @@
 # MLOps Dandelion Classifier - GreenGuard
 
-[![CI/CD](https://github.com/enzoberreur/ml-ops-dandelion-classifier/actions/workflows/ci_cd.yml/badge.svg)](https://github.com/enzoberreur/ml-ops-dandelion-classifier/actions/workflows/ci_cd.yml)
+[![CI/CD](https://github.com/enzoberreur/ml-ops-dandelion-classifier/actions/workflows/ci_cd.yml/badge.svg)](https://github.com/enzoberreur/ml-ops-dandelion-classifier/actions/workflows/ci_cd.yml) [![codecov](https://codecov.io/gh/enzoberreur/ml-ops-dandelion-classifier/branch/main/graph/badge.svg)](https://codecov.io/gh/enzoberreur/ml-ops-dandelion-classifier)
 
 End-to-end, industrialised AI solution that classifies a plant photo as
 **dandelion** (weed) or **grass** (crop/turf), built as the deliverable for
