@@ -212,9 +212,28 @@ def train(argv: list[str] | None = None) -> None:
         mlflow.log_text(json.dumps(metrics_summary, indent=2), artifact_file="metrics_summary.json")
         mlflow.pytorch.log_model(model, artifact_path="model")
 
+    # Promotion gate: only replace the served model when the candidate clears the
+    # quality floor and does not regress vs the currently promoted model.
+    from retrain.promotion import fetch_current_metrics, metrics_object_for, should_promote
+
     client = get_minio_client()
-    upload_file_to_minio(client, args.minio_model_bucket, args.minio_model_path, args.model_output)
-    LOG.info("Model uploaded to MinIO bucket=%s object=%s", args.minio_model_bucket, args.minio_model_path)
+    metrics_object = metrics_object_for(args.minio_model_path)
+    current_metrics = fetch_current_metrics(client, args.minio_model_bucket, metrics_object)
+    promote, reason = should_promote(metrics_summary, current_metrics)
+    if promote:
+        upload_file_to_minio(client, args.minio_model_bucket, args.minio_model_path, args.model_output)
+        upload_file_to_minio(
+            client,
+            args.minio_model_bucket,
+            metrics_object,
+            args.model_output.parent / "metrics_summary.json",
+            content_type="application/json",
+        )
+        LOG.info("Promotion gate: PROMOTE - %s", reason)
+        LOG.info("Model uploaded to MinIO bucket=%s object=%s", args.minio_model_bucket, args.minio_model_path)
+    else:
+        LOG.warning("Promotion gate: BLOCK - %s", reason)
+        LOG.warning("Candidate kept local at %s; MinIO model left unchanged", args.model_output)
 
 
 if __name__ == "__main__":

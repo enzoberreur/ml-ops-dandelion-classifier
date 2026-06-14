@@ -22,7 +22,12 @@ retrain?  ── scheduled refresh → yes
           └ drift-gated        → only if dataset drift detected
         │
         ▼
-train (models.train) → log to MLflow → push best_model.pt to MinIO
+train (models.train) → log to MLflow
+        │
+        ▼
+promotion gate (retrain/promotion.py)
+        ├ promote → push best_model.pt + latest_metrics.json to MinIO
+        └ block   → keep current model, log the reason
         │
         ▼
 refresh reference baseline  → next run compares against this dataset
@@ -46,6 +51,20 @@ python -m retrain.retrain --data-dir data/processed --force -- --arch resnet18 -
 
 Exit codes: `0` handled (trained or correctly skipped) · `2` error (surfaced to
 the orchestrator).
+
+## Promotion gate
+
+A retrained candidate does not automatically replace the served model. The gate
+in [`promotion.py`](promotion.py) compares the candidate's macro F1 (`val_f1`
+in `metrics_summary.json`) against:
+
+1. a quality floor (`min_f1`, default 0.85), and
+2. the currently promoted model's `latest_metrics.json` stored next to the
+   checkpoint in MinIO (regression tolerance: 0.01).
+
+Only when both pass are `best_model.pt` and `latest_metrics.json` uploaded;
+otherwise the candidate stays local and the reason is logged. With no
+`latest_metrics.json` yet (first run), the quality floor alone decides.
 
 ## Why gate on drift?
 
